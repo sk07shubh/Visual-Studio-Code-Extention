@@ -1,7 +1,41 @@
+const fs = require('fs');
+const path = require('path');
 const https = require('https');
 
+function loadLocalEnv() {
+	const envPath = path.join(__dirname, '.env');
+	if (!fs.existsSync(envPath)) {
+		return;
+	}
+
+	const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('#')) {
+			continue;
+		}
+
+		const separatorIndex = trimmed.indexOf('=');
+		if (separatorIndex === -1) {
+			continue;
+		}
+
+		const key = trimmed.slice(0, separatorIndex).trim();
+		const value = trimmed.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, '');
+		if (!process.env[key]) {
+			process.env[key] = value;
+		}
+	}
+}
+
+loadLocalEnv();
+
 async function callClaude(errorText) {
-	const apiKey = 'AIzaSyAdJTei1lGizHDHulmkw-uBzW0bXpkh6ig';
+	const apiKey = process.env.GEMINI_API_KEY;
+
+	if (!apiKey) {
+		return 'ErrBuddy is missing a Gemini API key. Add GEMINI_API_KEY to your .env file and try again.';
+	}
 
 	const body = JSON.stringify({
 		contents: [
